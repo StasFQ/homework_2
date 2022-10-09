@@ -40,7 +40,7 @@ def users():
 3
 @app.route('/mean/')
 def average():
-    df = pd.read_csv('hw.csv')
+    df = pd.read_csv('flaskr/hw.csv')
     metres = df['Height(Inches)'].mean() * 0.025399987500778
     kg = df['Weight(Pounds)'].mean() / 2.2046
     return f'Средний вес человека: {kg} <p></p>  Средний рост: {metres}'
