@@ -1,53 +1,34 @@
-import requests
-from flask import Flask, request
-from faker import Faker
-import random
-import string
-import csv
-import pandas as pd
+import os
 
-app = Flask(__name__)
+from flask import Flask
 
 
-@app.route("/requirements/")
-def file():
-    res = ''
-    with open('requirements.txt') as f:
-        res += f.read()
-    requirements_splitted = res.split('\n')
-    res = ''
-    for l in requirements_splitted:
-        res += f'<p>{l}</p>'
-    return res
+def create_app(test_config=None):
+    # create and configure the app
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_mapping(
+        SECRET_KEY='dev',
+        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
+    )
 
+    if test_config is None:
+        # load the instance config, if it exists, when not testing
+        app.config.from_pyfile('config.py', silent=True)
+    else:
+        # load the test config if passed in
+        app.config.from_mapping(test_config)
 
-@app.route('/generate-users/')
-def users():
-    fake = Faker()
-    r = int(request.args.get('count'))
-    dictionary = {}
-    while r:
-        s = fake.name()
-        dictionary[s] = s.replace(' ', '') + '@gmail.com'
-        r -= 1
-    strings = []
-    for key, item in dictionary.items():
-        strings.append("{}: {}".format(key.capitalize(), item))
-    result = "; ".join(strings)
-    res_split = result.replace(';', '<p></p>')
-    return res_split
+    # ensure the instance folder exists
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
 
-3
-@app.route('/mean/')
-def average():
-    df = pd.read_csv('flaskr/hw.csv')
-    metres = df['Height(Inches)'].mean() * 0.025399987500778
-    kg = df['Weight(Pounds)'].mean() / 2.2046
-    return f'Средний вес человека: {kg} <p></p>  Средний рост: {metres}'
+    from . import db
+    db.init_app(app)
 
+    from . import auth
+    app.register_blueprint(auth.bp)
+    app.register_blueprint()
 
-@app.route('/space/')
-def astronavts():
-    r = requests.get('http://api.open-notify.org/astros.json')
-    a = str(r.json()["number"])
-    return a + ' Космонавтов сейчас в космосе'
+    return app
